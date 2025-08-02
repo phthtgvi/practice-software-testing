@@ -44,8 +44,9 @@ jobs:
           docker compose exec -T laravel-api php artisan tinker --execute="echo 'Database connection: ' . (DB::connection()->getPdo() ? 'OK' : 'FAILED');"
       - name: Install Newman
         run: npm install -g newman
-      - name: Run API tests with Newman
+      - name: Run API tests with Newman // run the tests in the postman collection
         run: |
           newman run 22127451-backend-toolshop.postman_collection.json \
             --iteration-data invoice_test_data.csv \
             --reporters cli
+        
