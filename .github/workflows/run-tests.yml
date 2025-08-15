@@ -57,7 +57,7 @@ jobs:
         run: |
           newman run sprint5-with-bugs/API/tests/api/22127451-backend-toolshop.postman_collection.json \
             -e sprint5-with-bugs/API/tests/api/environment.json \
-            --iteration-data sprint5-with-bugs/API/tests/api/login_data.csv \
+            --iteration-data sprint5-with-bugs/API/tests/api/invoice_test_data.csv \
             --reporters cli,junit,htmlextra \
             --reporter-junit-export newman-report.xml \
             --reporter-htmlextra-export newman-report.html
