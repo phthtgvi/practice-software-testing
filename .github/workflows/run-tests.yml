@@ -1,52 +1,76 @@
-name: Run Automated Tests
+# Tên của quy trình CI/CD
+name: Laravel CI/CD with Newman Tests
 
 on:
   push:
-    branches: [ main ]
-
-concurrency: production_environment
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout ⚙️
+      - name: Checkout Code ⚙️
         uses: actions/checkout@v4
-      - name: Setup environment 🛠️
+
+      - name: Create Laravel .env file 🔧
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          export DISABLE_LOGGING=true
-          # Create .env file from template
-          cp sprint5-with-bugs/API/.env_template sprint5-with-bugs/API/.env
-          # Update database configuration for Docker
-          sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mariadb/g' sprint5-with-bugs/API/.env
-          sed -i 's/DB_DATABASE=${SECRET_DB}_with_bugs/DB_DATABASE=toolshop/g' sprint5-with-bugs/API/.env
-          sed -i 's/DB_USERNAME=${SECRET_DB_USER}/DB_USERNAME=user/g' sprint5-with-bugs/API/.env
-          sed -i 's/DB_PASSWORD=${SECRET_DB_PASS}/DB_PASSWORD=root/g' sprint5-with-bugs/API/.env
-          sed -i 's/APP_ENV=production/APP_ENV=local/g' sprint5-with-bugs/API/.env
-          sed -i 's/APP_DEBUG=false/APP_DEBUG=true/g' sprint5-with-bugs/API/.env
-          sed -i 's|APP_URL=https://with-bugs.practicesoftwaretesting.com/#/|APP_URL=http://localhost:8091|g' sprint5-with-bugs/API/.env
-          echo "DISABLE_LOGGING=true" >> sprint5-with-bugs/API/.env
-          echo "DISABLE_LOGGING=true" >> $GITHUB_ENV
-      - name: Start containers 🐳
-        run: |
-          export DISABLE_LOGGING=true
-          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --force-recreate
-      - name: Wait for containers to be ready ⏳
+          echo "Creating Laravel .env file from .env.ci template..."
+          # Lệnh envsubst sẽ đọc file .env.ci, tìm các biến $VAR và thay bằng giá trị từ secrets
+          envsubst < sprint5-with-bugs/API/.env.ci > sprint5-with-bugs/API/.env
+          echo ".env file created successfully."
+
+      - name: Start Docker Containers
+        run: docker compose up -d
+
+      - name: Wait for Services
         run: sleep 60
-      - name: Install Composer dependencies 📦
+        shell: bash
+
+      - name: Setup Application
         run: |
+          echo "Installing Composer dependencies..."
           docker compose run --rm composer
-      - name: Create & Seed database 🌱
+
+          echo "Fixing permissions..."
+          docker compose exec -T -u root laravel-api chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+          echo "Running database migrations and seeding..."
+          docker compose exec -T laravel-api php artisan migrate:fresh --seed --force
+
+      - name: Install Node.js & Newman
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Run Newman Tests
         run: |
-          docker compose exec -T laravel-api php artisan migrate:refresh --seed
-      - name: Test database connection 🔗
-        run: |
-          docker compose exec -T laravel-api php artisan tinker --execute="echo 'Database connection: ' . (DB::connection()->getPdo() ? 'OK' : 'FAILED');"
-      - name: Install Newman
-        run: npm install -g newman
-      - name: Run API tests with Newman // run the tests in the postman collection
-        run: |
-          newman run 22127451-backend-toolshop.postman_collection.json \
-            --iteration-data invoice_test_data.csv \
-            --reporters cli
-        
+          newman run sprint5-with-bugs/API/tests/api/22127451-backend-toolshop.postman_collection.json \
+            -e sprint5-with-bugs/API/tests/api/environment.json \
+            --iteration-data sprint5-with-bugs/API/tests/api/login_data.csv \
+            --reporters cli,junit,htmlextra \
+            --reporter-junit-export newman-report.xml \
+            --reporter-htmlextra-export newman-report.html
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: newman-report
+          path: |
+            newman-report.html
+            newman-report.xml
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
