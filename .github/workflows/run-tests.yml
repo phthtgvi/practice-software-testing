@@ -47,29 +47,67 @@ jobs:
           echo "Running database migrations and seeding..."
           docker compose exec -T laravel-api php artisan migrate:fresh --seed --force
 
-      - name: Install Node.js & Newman
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
-      - run: npm install -g newman newman-reporter-htmlextra
+          node-version: "22"
 
-      - name: Run Newman Tests
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh 
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Run POST /invoices tests
         run: |
-          newman run sprint5-with-bugs/API/tests/api/22127451-backend-toolshop.postman_collection.json \
-            -e sprint5-with-bugs/API/tests/api/environment.json \
-            --iteration-data sprint5-with-bugs/API/tests/api/invoice_test_data.csv \
-            --reporters cli,junit,htmlextra \
-            --reporter-junit-export newman-report.xml \
-            --reporter-htmlextra-export newman-report.html
+            postman collection run 47874393-7a384e4a-fa98-49e1-91f6-6494dd3b4e0c \
+            -e 47874393-18898911-5f9b-40a7-810e-013d2595a384 \
+            -i 47874393-99fd5861-2531-46f4-909a-d3bc33c40933 \
+            -i 47874393-c6785129-b6e7-4ef4-89b9-d4023840645b \
+            -d sprint5-with-bugs/API/tests/api/post_invoices.csv\
+            --reporters cli,junit,html \
+            --reporter-junit-export post-invoices-report.xml \
+            --reporter-html-export post-invoices-report.html || true
+       
+      - name: Run PUT /invoices/invoiceId tests
+        run: |
+            postman collection run 47874393-7a384e4a-fa98-49e1-91f6-6494dd3b4e0c \
+            -e 47874393-18898911-5f9b-40a7-810e-013d2595a384 \
+            -i 47874393-99fd5861-2531-46f4-909a-d3bc33c40933 \
+            -i 47874393-c6785129-b6e7-4ef4-89b9-d4023840645b \
+            -i 47874393-3d6ebf21-5176-4660-9f15-9f4835641596 \
+            -d sprint5-with-bugs/API/tests/api/put_invoices.csv \
+            --reporters cli,junit,html \
+            --reporter-junit-export put-invoices-report.xml \
+            --reporter-html-export put-invoices-report.html || true
 
-      - name: Upload Test Report
+      - name: Run PUT /invoices/invoiceId/status tests
+        run: |
+            postman collection run 47874393-7a384e4a-fa98-49e1-91f6-6494dd3b4e0c \
+            -e 47874393-18898911-5f9b-40a7-810e-013d2595a384 \
+            -i 47874393-99fd5861-2531-46f4-909a-d3bc33c40933 \
+            -i 47874393-c6785129-b6e7-4ef4-89b9-d4023840645b \
+            -i 47874393-14e3bc46-0c63-463c-83e3-f6c1de72456d \
+            -d sprint5-with-bugs/API/tests/api/put_status_invoices.csv \
+            --reporters cli,junit,html \
+            --reporter-junit-export put-status-invoices-report.xml \
+            --reporter-html-export put-status-invoices-report.html || true
+
+      - name: Upload test report 
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: newman-report
           path: |
-            newman-report.html
-            newman-report.xml
+            *.html
+            *.xml
+          
+      - name: Verdict on test report 
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '*.xml'
+          fail_on_failure: true
 
       - name: Cleanup
         if: always()
