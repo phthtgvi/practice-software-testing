@@ -64,7 +64,7 @@ jobs:
             -e 47874393-18898911-5f9b-40a7-810e-013d2595a384 \
             -i 47874393-99fd5861-2531-46f4-909a-d3bc33c40933 \
             -i 47874393-c6785129-b6e7-4ef4-89b9-d4023840645b \
-            -d sprint5-with-bugs/API/tests/api/post_invoices.csv\
+            -d sprint5-with-bugs/API/tests/api/post_invoices.csv \
             --reporters cli,junit,html \
             --reporter-junit-export post-invoices-report.xml \
             --reporter-html-export post-invoices-report.html || true
