@@ -1,28 +1,28 @@
 {
 	"info": {
-		"_postman_id": "4f3e4bcf-8015-4af0-b46e-74dcb40a15f8",
-		"name": "22127451-backend-toolshop",
+		"_postman_id": "7a384e4a-fa98-49e1-91f6-6494dd3b4e0c",
+		"name": "backend-toolshop-api-testing",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "38289559"
+		"_exporter_id": "47874393"
 	},
 	"item": [
 		{
-			"name": "login",
+			"name": "/users/login",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"// Parse the response JSON to get the token\r",
-							"const response = pm.response.json();\r",
+							"// Parse the response body as JSON\r",
+							"const response = pm. response . json () ;\r",
 							"\r",
-							"// Set the access_token variable in the active environment\r",
-							"pm.environment.set(\"access_token\", response.access_token);\r",
-							"\r",
-							"// Test to confirm the token was received\r",
-							"pm.test(\"Access token was received and stored\", function () {\r",
-							"    pm.expect(pm.environment.get(\"access_token\")).to.not.be.empty;\r",
-							"});"
+							"// Check if the response contains an access token\r",
+							"if (response && response.access_token) {\r",
+							"    pm. environment .set(\"accessToken\", response.access_token);\r",
+							"    console.log(\" Access Token saved to environment variable : \" + response.access_token);\r",
+							"} else {\r",
+							"    console.log(\"No access token found in the response .\") ;\r",
+							"}"
 						],
 						"type": "text/javascript",
 						"packages": {}
@@ -30,11 +30,14 @@
 				}
 			],
 			"request": {
+				"auth": {
+					"type": "noauth"
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"email\": \"customer@practicesoftwaretesting.com\",\r\n  \"password\": \"welcome01\"\r\n}",
+					"raw": "{\r\n  \"email\": \"{{email}}\",\r\n  \"password\": \"{{password}}\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -42,12 +45,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://api-with-bugs.practicesoftwaretesting.com/users/login",
-					"protocol": "https",
+					"raw": "{{host}}/users/login",
 					"host": [
-						"api-with-bugs",
-						"practicesoftwaretesting",
-						"com"
+						"{{host}}"
 					],
 					"path": [
 						"users",
@@ -58,20 +58,95 @@
 			"response": []
 		},
 		{
-			"name": "create-invoice",
+			"name": "/invoices",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": []
+				},
+				"url": {
+					"raw": "{{host}}/invoices",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"invoices"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/invoices/invoiceId",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/invoices/{{invoiceId}}",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"invoices",
+						"{{invoiceId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/invoices",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"// Get the expected status and test name from the CSV file for the current run\r",
-							"let expectedStatus = parseInt(pm.iterationData.get(\"expected_status\"));\r",
-							"let testName = pm.iterationData.get(\"test_name\");\r",
+							"// Lấy mã trạng thái HTTP mong đợi từ file CSV/dữ liệu lặp\r",
+							"const expectedStatusCode = pm.iterationData.get(\"expected_status_code\");\r",
 							"\r",
-							"// Create a test that verifies the response status code\r",
-							"pm.test(`${testName} | Status code is ${expectedStatus}`, function () {\r",
-							"    pm.response.to.have.status(expectedStatus);\r",
-							"});"
+							"// Lấy test case ID để dễ dàng theo dõi log\r",
+							"const testCaseId = pm.iterationData.get(\"test_case_id\");\r",
+							"console.log(`[${testCaseId}] Running tests...`);\r",
+							"\r",
+							"pm.test(`[${testCaseId}] Status code is ${expectedStatusCode} as expected`, function() {\r",
+							"    pm.response.to.have.status(parseInt(expectedStatusCode));\r",
+							"});\r",
+							"\r",
+							"if (pm.response.code === 201) {\r",
+							"    pm.test(`[${testCaseId}] Status code is 201 Created`, function () {\r",
+							"        pm.response.to.have.status(201);\r",
+							"    });\r",
+							"\r",
+							"    // Parse a string to JSON\r",
+							"    const responseBody = pm.response.json();\r",
+							"    const requestBody = JSON.parse(pm.request.body.raw);\r",
+							"\r",
+							"    pm.test(`[${testCaseId}] Response body should have required properties`, function () {\r",
+							"        pm.expect(responseBody).to.have.property(\"id\");\r",
+							"        pm.expect(responseBody).to.have.property(\"invoice_number\");\r",
+							"        pm.expect(responseBody).to.have.property(\"total\");\r",
+							"    });\r",
+							"\r",
+							"    pm.test(`[${testCaseId}] Data types are correct`, function () {\r",
+							"        pm.expect(responseBody.id).to.be.a('number');\r",
+							"        pm.expect(responseBody.invoice_number).to.be.a('string').and.to.match(/^INV-/); // Bắt đầu bằng \"INV-\"\r",
+							"    });\r",
+							"\r",
+							"    pm.test(`[${testCaseId}] Response total should match request total`, function () {\r",
+							"        pm.expect(responseBody.total).to.equal(requestBody.total);\r",
+							"    });\r",
+							"\r",
+							"    // Lưu 'invoiceId' để dùng cho các request tiếp theo (GET, PUT, DELETE)\r",
+							"    if (responseBody.id) {\r",
+							"        pm.environment.set(\"invoiceId\", responseBody.id);\r",
+							"        console.log(`[${testCaseId}] Saved new invoiceId to environment: ${responseBody.id}`);\r",
+							"    }\r",
+							"}"
 						],
 						"type": "text/javascript",
 						"packages": {}
@@ -84,7 +159,7 @@
 					"bearer": [
 						{
 							"key": "token",
-							"value": "{{access_token}}",
+							"value": "{{accessToken}}",
 							"type": "string"
 						}
 					]
@@ -93,7 +168,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"user_id\": {{user_id}},\r\n  \"billing_address\": \"{{billing_address}}\",\r\n  \"billing_city\": \"{{billing_city}}\",\r\n  \"billing_country\": \"{{billing_country}}\",\r\n  \"billing_state\": \"{{billing_state}}\",\r\n  \"billing_postcode\": \"{{billing_postcode}}\",\r\n  \"total\": {{total}},\r\n  \"payment_method\": \"{{payment_method}}\",\r\n  \"payment_account_name\": \"{{payment_account_name}}\",\r\n  \"payment_account_number\": \"{{payment_account_number}}\",\r\n  \"invoice_items\": {{invoice_items}}\r\n}",
+					"raw": "{\r\n  \"user_id\": {{user_id}},\r\n  \"billing_address\": \"{{billing_address}}\",\r\n  \"billing_city\": \"{{billing_city}}\",\r\n  \"billing_country\": \"{{billing_country}}\",\r\n  \"billing_state\": \"{{billing_state}}\",\r\n  \"billing_postcode\": \"{{billing_postcode}}\",\r\n  \"total\": {{total}},\r\n  \"payment_method\": \"{{payment_method}}\",\r\n  \"payment_account_name\": \"{{payment_account_name}}\",\r\n  \"payment_account_number\": \"{{payment_account_number}}\",\r\n  \"invoice_items\": [\r\n    {\r\n      \"product_id\": {{product_id}},\r\n      \"quantity\": {{quantity}},\r\n      \"unit_price\": {{unit_price}}\r\n    }\r\n  ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -101,15 +176,49 @@
 					}
 				},
 				"url": {
-					"raw": "https://api-with-bugs.practicesoftwaretesting.com/invoices",
-					"protocol": "https",
+					"raw": "{{host}}/invoices",
 					"host": [
-						"api-with-bugs",
-						"practicesoftwaretesting",
-						"com"
+						"{{host}}"
 					],
 					"path": [
 						"invoices"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/invoices/invoiceId",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/invoices/{{invoiceId}}",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"invoices",
+						"{{invoiceId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/invoices/invoiceId/status",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/invoices/{{invoiceId}}/status",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"invoices",
+						"{{invoiceId}}",
+						"status"
 					]
 				}
 			},

@@ -1,9 +1,0 @@
-test_name,expected_status,user_id,billing_address,billing_city,billing_country,billing_state,billing_postcode,total,payment_method,payment_account_name,payment_account_number,invoice_items
-"Happy Path - Multiple Items",201,2,"123 Main St","Anytown","USA","CA","90210",73.05,"Credit Card","Jane Smith","4242-4242-4242-4242","[{""product_id"": 9, ""quantity"": 1, ""unit_price"": 25.50}, {""product_id"": 12, ""quantity"": 1, ""unit_price"": 47.55}]"
-"Happy Path - International Address",201,3,"789 Đường Nguyễn Huệ, Phường Bến Nghé","Hồ Chí Minh","Việt Nam","Quận 1","700000",59.99,"Bank Transfer","Trần Thị B","190333444555","[{""product_id"": 5, ""quantity"": 1, ""unit_price"": 59.99}]"
-"Validation - Missing Address",422,4,"","No Address City","USA","FL","33101",15.00,"Cash on Delivery","Test User","111222333","[{""product_id"": 1, ""quantity"": 1, ""unit_price"": 15.00}]"
-"Validation - Invalid Data Type",422,"user_forty","456 Error Lane","Testville","CAN","ON","M5V 2T6",20.00,"Cash on Delivery","Error User","444555666","[{""product_id"": 2, ""quantity"": 1, ""unit_price"": 20.00}]"
-"Validation - Empty Items Array",400,5,"789 No Item St","Emptyville","UK","London","SW1A 0AA",0,"Credit Card","No Items","999888777","[]"
-"Edge Case - Mismatched Total",201,2,"1 Logic Test Rd","Calc City","USA","TX","75001",500.00,"Cash on Delivery","Logic Tester","123123123","[{""product_id"": 3, ""quantity"": 2, ""unit_price"": 15.00}]"
-"Edge Case - Zero Quantity",400,3,"10 Edge Case Ave","Nulled","USA","NY","10001",19.99,"Credit Card","Zero Qty","000000000","[{""product_id"": 7, ""quantity"": 0, ""unit_price"": 19.99}]"
-"Edge Case - Negative Quantity",400,4,"11 Negative Path","Failburg","USA","WA","98101",-25.00,"Cash on Delivery","Negative Test","11221122","[{""product_id"": 8, ""quantity"": -1, ""unit_price"": 25.00}]"
